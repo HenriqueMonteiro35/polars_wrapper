@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import polars as pl
 import re
 
@@ -57,18 +59,24 @@ def parse_query(query: str) -> pl.Expr:
 
     return expr
 
+
+
 class PandasLikePolars(pl.DataFrame):
     def __getitem__(self, item):
-        # Case 1: Boolean mask as Polars Series
-        if isinstance(item, pl.Series) and item.dtype == pl.Boolean:
+       # Case 1: Boolean mask as Polars series, Pandas series or NumPy array
+        if isinstance(item, (pl.Series, pd.Series, np.ndarray)) and item.dtype in [bool, pl.Boolean]:
             return self.filter(item)
 
-        # Case 2: string filter like "col_a > 2 | col_b == 'w'"
+        # Case 2: Boolean mask as list/tuple
+        if isinstance(item, (list, tuple)) and all(isinstance(x, bool) for x in item):
+            return self.filter(pl.Series(item))
+
+        # Case 3: string filter like "col_a > 2 | col_b == 'w'"
         if isinstance(item, str) and item not in df.columns:
             expr = parse_query(item)
             return self.filter(expr)
 
-        # Case 3: tuple/list of string filters (assumes AND operation)
+        # Case 4: tuple/list of string filters (assumes AND operation)
         if isinstance(item, (tuple, list)) and all(isinstance(x, str) for x in item):
             if not all(x in self.columns for x in item):
                 return self[" & ".join(item)]
