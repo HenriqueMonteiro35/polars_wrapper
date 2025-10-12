@@ -1,12 +1,10 @@
-# research_frame.py
-
 import polars as pl
 import numpy as np
 import pandas as pd
 from IPython.display import display
 
-# from queries import format_query
-# from logs import format_log, record_log
+from queries import format_query
+from logs import format_log, record_log
 
 class ResearchFrame(pl.DataFrame):
     def __init__(self, *args, **kwargs):
