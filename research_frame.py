@@ -1,19 +1,23 @@
+# research_frame.py
+
 import polars as pl
 import numpy as np
 import pandas as pd
 from IPython.display import display
 
-from queries import format_query
+# from queries import format_query
+# from logs import format_log, record_log
 
 class ResearchFrame(pl.DataFrame):
     def __init__(self, *args, **kwargs):
-        self.logs = kwargs.pop("logs", list())
+        # print("__init__", *args, kwargs)
+        self._logs = kwargs.pop("logs", list())
         super().__init__(*args, **kwargs)
 
 
     # ----------- Core Indexing -----------
     def __getitem__(self, item):
-        print("__getitem__", item, "|")
+        # print("__getitem__", item, "|")
         # Case 1: Boolean mask as Polars series, Pandas series, or NumPy array
         if isinstance(item, (pl.Series, pd.Series, np.ndarray)) and item.dtype in [bool, pl.Boolean]:
             return self.filter(item)
@@ -31,14 +35,9 @@ class ResearchFrame(pl.DataFrame):
         return super().__getitem__(item)
 
 
-    def filter(self, *args, **kwargs):
-        logs = self.logs + [[*args, kwargs]]
-        return ResearchFrame(super().filter(*args, **kwargs), logs=logs)
-
-
     # ----------- Pandas-like Assignment -----------
     def __setitem__(self, key, value):
-        print("__setitem__", key, value, "|")
+        # print("__setitem__", key, value, "|")
         if not isinstance(key, str):
             raise TypeError("Column name must be a string")
 
@@ -65,7 +64,7 @@ class ResearchFrame(pl.DataFrame):
 
     def _eval_query(self, query: str) -> pl.Expr:
         expr = format_query(query)
-        print("_eval_query", query, expr)
+        # print("_eval_query", query, expr)
 
         # 4) safe eval environment: expose only pl, pl.col, pl.lit, and column-name aliases (already substituted,
         # but exposing mapping is harmless and convenient)
@@ -84,10 +83,28 @@ class ResearchFrame(pl.DataFrame):
 
 
     def __call__(self):
-        if self.logs:
-            last_filter = [expr.__str__() for expr in self.logs[-1]]
-            filter_str = " & ".join(last_filter)
-            filter_str = filter_str.replace("[", "").replace("]", "").replace(" & {}", "")
-            print(f"===== {filter_str} =====")
+        if self._logs:
+            print(format_log(self._logs[-1]))
         display(self)
         return self
+
+
+    @record_log
+    def filter(self, *args, logs=None, **kwargs):
+        return ResearchFrame(super().filter(*args, **kwargs), logs=logs)
+
+
+    @record_log
+    def drop(self, *args, logs=None, **kwargs):
+        return ResearchFrame(super().drop(*args, **kwargs), logs=logs)
+
+
+    @property
+    def log(self):
+        if not self._logs:
+            print("=============== EMPTY LOGS! ===============")
+        else:
+            print("=============== LOGS ===============")
+            padding = len(len(self._logs).__str__())
+            for i, log in enumerate(self._logs):
+                print(f"STEP {i+1:>{padding}} {format_log(log)}")
