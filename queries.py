@@ -28,6 +28,7 @@ def parse_query(query):
         )
         # Get the remaining parentheses blocks not yet parsed
         parentheses_blocks = flat_map(f_parse_parentheses, parentheses_blocks)
+
     # While loop ends when there is nothing else to be parsed within parentheses
     return basic_blocks
 
