@@ -7,7 +7,7 @@ import pandas as pd
 from IPython.display import display
 
 from queries import format_query
-from logs import format_log, update_log
+from logs import format_log
 from formatting import format_df
 
 class ResearchFrame(pl.DataFrame):
